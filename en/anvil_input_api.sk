@@ -1,0 +1,184 @@
+# ------------------------------------------------------------
+#  skript-anvil-input-api (English edition)
+#  https://github.com/Im-Tim-mI/skript-anvil-input-api
+#  Copyright (c) 2026 廷廷小教室、廷廷的家（Tim945）
+#  License: MIT + Commons Clause (see LICENSE)
+# ------------------------------------------------------------
+
+# ==========================================================
+#  Anvil Text Input - pure Skript edition (v5)
+#
+#  Requirements: Skript 2.6+ / skript-reflect / Paper 1.20+
+#
+#  ★ Using it from other scripts ★
+#    1) Call it from ANY script (functions are global):
+#         openAnvilInput(player, "some-id")
+#         openAnvilInput(player, "some-id", "default text")
+#         openAnvilInput(player, "some-id", "default text", "&9Custom title")
+#
+#    2) Listen for the result in ANY script (fires once the player confirms the input):
+#         on anvil input:
+#             if anvilId(player) is "some-id":
+#                 set {_text} to anvilText(player)   # <- the text the player typed
+#                 send "You typed: %{_text}%" to player
+#
+#    You can also read the stored values directly: anvilText(player) / anvilId(player)
+#
+#  Other features: title override, the player takes the paper and it is then deleted,
+#  +1 level on open / -1 if nothing was named (covers the rename cost), blank white input box.
+# ==========================================================
+
+import:
+    org.bukkit.Material
+    org.bukkit.inventory.ItemStack
+    net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+
+
+# ====== Custom event: other scripts can listen with "on anvil input:" ======
+event "anvil input":
+    pattern: anvil input
+    event-values: player
+
+
+# ====== Getters for other scripts: the player's last input text / id ======
+function anvilText(p: player) :: text:
+    return {anvilinput.text::%{_p}'s uuid%}
+
+function anvilId(p: player) :: text:
+    return {anvilinput.id::%{_p}'s uuid%}
+
+
+# ==========================================================
+#  Open the anvil input box
+# ==========================================================
+function openAnvilInput(p: player, id: text, default: text = "", title: text = ""):
+    set {_uuid} to "%{_p}'s uuid%"
+    set {anvilinput::%{_uuid}%} to {_id}
+    delete {anvilnamed::%{_uuid}%}
+
+    if {_title} is not "":
+        set {anviltitle::%{_uuid}%} to {_title}
+    else:
+        delete {anviltitle::%{_uuid}%}
+
+    if {anvilreopen::%{_uuid}%} is not set:
+        if {_p}'s gamemode is not creative:
+            set {_p}'s level to {_p}'s level + 1
+
+    set {_view} to {_p}.openAnvil({_p}.getLocation(), true)
+    set {_top} to {_view}.getTopInventory()
+
+    set {_left} to new ItemStack(Material.valueOf("PAPER"))
+    set {_meta} to {_left}.getItemMeta()
+    if {_default} is "":
+        {_meta}.setDisplayName(" ")
+    else:
+        {_meta}.setDisplayName(colored {_default})
+    {_left}.setItemMeta({_meta})
+    {_top}.setItem(0, {_left})
+
+    delete {anvilreopen::%{_uuid}%}
+
+
+# Change the title of an open anvil (reopens it and keeps the current text)
+function setAnvilTitle(p: player, title: text):
+    set {_uuid} to "%{_p}'s uuid%"
+    {anvilinput::%{_uuid}%} is set
+    set {_id} to {anvilinput::%{_uuid}%}
+    set {_text} to {_p}.getOpenInventory().getTopInventory().getRenameText()
+    set {anvilreopen::%{_uuid}%} to true
+    openAnvilInput({_p}, {_id}, {_text} ? "", {_title})
+
+
+# Override the title the moment the window opens
+on inventory open:
+    {anvilinput::%player's uuid%} is set
+    {anviltitle::%player's uuid%} is set
+    set {_comp} to LegacyComponentSerializer.legacyAmpersand().deserialize({anviltitle::%player's uuid%})
+    event.titleOverride({_comp})
+
+
+# Click: clicking the output slot after typing -> let the player take the paper,
+# delete it 1 tick later and fire the "anvil input" event
+on inventory click:
+    {anvilinput::%player's uuid%} is set
+    set {_slot} to event.getRawSlot()
+
+    if {_slot} is not 2:
+        cancel event
+        stop
+
+    if event.isShiftClick() is true:
+        cancel event
+        stop
+
+    set {_text} to event.getView().getTopInventory().getRenameText()
+    if {_text} is not set:
+        cancel event
+        stop
+    set {_text} to {_text}.trim()
+    if {_text} is "":
+        cancel event
+        stop
+
+    set {anvilnamed::%player's uuid%} to true
+    set {_id} to {anvilinput::%player's uuid%}
+    delete {anvilinput::%player's uuid%}
+    set {_p} to player
+
+    wait 1 tick
+    set {_uuid} to "%{_p}'s uuid%"
+    set {_view} to {_p}.getOpenInventory()
+    {_view}.getTopInventory().clear()
+    {_p}.setItemOnCursor(new ItemStack(Material.valueOf("AIR")))
+    {_p}.closeInventory()
+    delete {anvilnamed::%{_uuid}%}
+    delete {anviltitle::%{_uuid}%}
+
+    # ★ Store the result in global variables for anvilText()/anvilId()
+    set {anvilinput.text::%{_uuid}%} to {_text}
+    set {anvilinput.id::%{_uuid}%} to {_id}
+
+    # ★ Fire the custom event to notify every listening script
+    #   values must be a list variable whose indexes are the type names (player)
+    delete {_vals::*}
+    set {_vals::player} to {_p}
+    set {_evt} to a new custom event "anvil input" with values {_vals::*}
+    call {_evt}
+
+
+on inventory drag:
+    {anvilinput::%player's uuid%} is set
+    cancel event
+
+
+on inventory close:
+    {anvilinput::%player's uuid%} is set
+    event.getView().getTopInventory().clear()
+
+    if {anvilreopen::%player's uuid%} is set:
+        stop
+
+    if {anvilnamed::%player's uuid%} is not set:
+        if player's gamemode is not creative:
+            if player's level is greater than or equal to 1:
+                set player's level to player's level - 1
+
+    delete {anvilinput::%player's uuid%}
+    delete {anvilnamed::%player's uuid%}
+    delete {anviltitle::%player's uuid%}
+
+
+# ==========================================================
+#  Example listener (safe to delete; shows how other scripts receive the result)
+# ==========================================================
+on anvil input:
+    if anvilId(player) is "demo":
+        set {_text} to anvilText(player)
+        send "&aYou entered: &f%{_text}%" to player
+
+
+# Test command
+command /anvilinput:
+    trigger:
+        openAnvilInput(player, "demo", "", "Enter some text")
