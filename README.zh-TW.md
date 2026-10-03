@@ -6,6 +6,18 @@
 
 > 本儲存庫包含同一個腳本的兩個版本：**繁體中文（zh-TW）** 是作者伺服器實際使用的原始版本；**English** 為完整英文翻譯版（指令、訊息與變數名稱皆為英文），功能相同。
 
+<!-- BEGIN LIVE SCREENSHOTS -->
+
+## 畫面預覽
+
+![鐵砧文字輸入視窗](docs/images/anvil-input.png)
+
+*執行 `/anvilinput` 開啟示範輸入框。視窗類型、標題與兩個紙張欄位皆為伺服器在 `open_window` / `window_items` 中送出的實際內容。*
+
+> 這些是實機擷取後重繪的畫面，不是原生客戶端截圖。流程為：無頭客戶端登入實機 Paper 26.2 伺服器觸發腳本，再以官方 Minecraft 26.2 客戶端素材忠實重繪伺服器回傳的方塊／介面資料。Mojang/Microsoft 的圖像資產不屬於本專案程式碼授權範圍。
+
+<!-- END LIVE SCREENSHOTS -->
+
 ## 功能特色
 
 - `openAnvilInput(玩家, 識別字串, 預設文字, 標題)`：任何腳本都能呼叫

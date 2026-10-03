@@ -6,6 +6,18 @@ A reusable text-input library for Skript: open an anvil window, let the player t
 
 > This repository has two editions of the same script: **繁體中文 (zh-TW)** is the original used on the author's Traditional Chinese server, and **English** is a full translation (commands, messages and variable names) with the same features.
 
+<!-- BEGIN LIVE SCREENSHOTS -->
+
+## Screenshots
+
+![Anvil text input window](docs/images/anvil-input.png)
+
+*`/anvilinput` opening the demo prompt. The window type, title and both paper slots are exactly what the server sent in `open_window` / `window_items`.*
+
+> These are live-server captures, not native client screenshots. A headless client logged into a real Paper 26.2 server, triggered the script, and the block / UI data the server sent back was re-rendered using the official Minecraft 26.2 client assets. Mojang/Microsoft image assets are not covered by this repository's code licence.
+
+<!-- END LIVE SCREENSHOTS -->
+
 ## Features
 
 - `openAnvilInput(player, id, default, title)` opens the input box from any script
